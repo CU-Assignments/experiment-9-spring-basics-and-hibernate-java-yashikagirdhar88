@@ -1,0 +1,50 @@
+Aim:- To perform CRUD operations on a Student entity using Hibernate 
+with MySql
+Program:- 1.MySQL Setup
+CREATE DATABASE company;
+USE company;
+
+CREATE TABLE employees (
+  id INT PRIMARY KEY,
+  name VARCHAR(50),
+  department VARCHAR(50)
+);
+
+INSERT INTO employees VALUES (1, 'Ankit', 'IT'), (2, 'Yashika', 'HR');
+2. EmployeeServlet.java
+import java.io.*;
+import java.sql.*;
+import javax.servlet.*;
+import javax.servlet.http.*;
+
+public class EmployeeServlet extends HttpServlet {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String empId = request.getParameter("empId");
+        response.setContentType("text/html");
+        PrintWriter out = response.getWriter();
+
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+            Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/company", "root", "yourpassword");
+
+            PreparedStatement ps = con.prepareStatement("SELECT * FROM employees WHERE id = ?");
+            ps.setInt(1, Integer.parseInt(empId));
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                out.println("Employee Name: " + rs.getString("name"));
+                out.println("<br>Department: " + rs.getString("department"));
+            } else {
+                out.println("No employee found with ID: " + empId);
+            }
+            con.close();
+        } catch(Exception e) {
+            out.println(e);
+        }
+    }
+}
+3.  employee.html
+<form action="EmployeeServlet" method="post">
+  Enter Employee ID: <input type="text" name="empId">
+  <input type="submit" value="Search">
+</form>
