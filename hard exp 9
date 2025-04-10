@@ -1,0 +1,140 @@
+Aim:- Develop a Spring-based application integrated with Hibernate to manage transactions.
+Create a banking system where users can transfer money between accounts, ensuring transaction consistency.
+Program:- 1.   1. Account.java
+import javax.persistence.*;
+
+@Entity
+public class Account {
+    @Id
+    private int accountId;
+    private String accountHolder;
+    private double balance;
+
+    // Getters and setters
+    public int getAccountId() { return accountId; }
+    public void setAccountId(int accountId) { this.accountId = accountId; }
+
+    public String getAccountHolder() { return accountHolder; }
+    public void setAccountHolder(String accountHolder) { this.accountHolder = accountHolder; }
+
+    public double getBalance() { return balance; }
+    public void setBalance(double balance) { this.balance = balance; }
+}
+
+2. TransactionRecord.java
+import javax.persistence.*;
+import java.util.Date;
+
+@Entity
+public class TransactionRecord {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    private int fromAccount;
+    private int toAccount;
+    private double amount;
+    private Date timestamp;
+
+    // Getters and setters
+    public int getId() { return id; }
+
+    public int getFromAccount() { return fromAccount; }
+    public void setFromAccount(int fromAccount) { this.fromAccount = fromAccount; }
+
+    public int getToAccount() { return toAccount; }
+    public void setToAccount(int toAccount) { this.toAccount = toAccount; }
+
+    public double getAmount() { return amount; }
+    public void setAmount(double amount) { this.amount = amount; }
+
+    public Date getTimestamp() { return timestamp; }
+    public void setTimestamp(Date timestamp) { this.timestamp = timestamp; }
+}
+
+ 3. hibernate.cfg.xml
+<hibernate-configuration>
+    <session-factory>
+        <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
+        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/bankdb</property>
+        <property name="hibernate.connection.username">root</property>
+        <property name="hibernate.connection.password">yourpassword</property>
+        <property name="hibernate.dialect">org.hibernate.dialect.MySQL8Dialect</property>
+        <property name="hibernate.hbm2ddl.auto">update</property>
+        <property name="show_sql">true</property>
+
+        <mapping class="Account"/>
+        <mapping class="TransactionRecord"/>
+    </session-factory>
+</hibernate-configuration>
+4. BankService.java
+import org.hibernate.*;
+import org.hibernate.cfg.Configuration;
+import java.util.Date;
+
+public class BankService {
+    private static SessionFactory factory = new Configuration().configure().buildSessionFactory();
+
+    public void transferMoney(int fromId, int toId, double amount) {
+        Session session = factory.openSession();
+        Transaction tx = null;
+
+        try {
+            tx = session.beginTransaction();
+
+            Account from = session.get(Account.class, fromId);
+            Account to = session.get(Account.class, toId);
+
+            if (from.getBalance() < amount) {
+                throw new RuntimeException("Insufficient balance!");
+            }
+
+            from.setBalance(from.getBalance() - amount);
+            to.setBalance(to.getBalance() + amount);
+
+            session.update(from);
+            session.update(to);
+
+            TransactionRecord tr = new TransactionRecord();
+            tr.setFromAccount(fromId);
+            tr.setToAccount(toId);
+            tr.setAmount(amount);
+            tr.setTimestamp(new Date());
+
+            session.save(tr);
+
+            tx.commit();
+            System.out.println("Transaction successful!");
+        } catch (Exception e) {
+            if (tx != null) tx.rollback();
+            System.out.println("Transaction failed! Rolled back. Reason: " + e.getMessage());
+        } finally {
+            session.close();
+        }
+    }
+}
+5. MainApp.java
+public class MainApp {
+    public static void main(String[] args) {
+        BankService service = new BankService();
+
+        // Sample successful transfer
+        service.transferMoney(101, 102, 200);
+
+        // Sample failed transfer (due to insufficient balance)
+        service.transferMoney(101, 102, 100000);
+    }
+}
+ 6. Sample MySQL Table Setup
+CREATE DATABASE bankdb;
+
+USE bankdb;
+
+CREATE TABLE Account (
+    accountId INT PRIMARY KEY,
+    accountHolder VARCHAR(100),
+    balance DOUBLE
+);
+
+INSERT INTO Account VALUES (101, 'Yashika', 1000);
+INSERT INTO Account VALUES (102, 'Ananya', 500);
