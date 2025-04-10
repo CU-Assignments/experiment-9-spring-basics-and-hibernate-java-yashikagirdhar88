@@ -1,0 +1,46 @@
+AIM:- To demonstrate dependency injection using Spring Framework 
+with java based configuration.
+Program:- 1. index.html
+<!DOCTYPE html>
+<html>
+<head><title>Login Page</title></head>
+<body>
+  <form action="LoginServlet" method="post">
+    Username: <input type="text" name="username" required><br>
+    Password: <input type="password" name="password" required><br>
+    <input type="submit" value="Login">
+  </form>
+</body>
+</html>
+2. LoginServlet.java
+import java.io.*;
+import javax.servlet.*;
+import javax.servlet.http.*;
+
+public class LoginServlet extends HttpServlet {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String user = request.getParameter("username");
+        String pass = request.getParameter("password");
+        
+        response.setContentType("text/html");
+        PrintWriter out = response.getWriter();
+        
+        if(user.equals("admin") && pass.equals("1234")) {
+            out.println("<h1>Welcome, " + user + "!</h1>");
+        } else {
+            out.println("<h1>Login Failed</h1>");
+        }
+    }
+}
+3. web.xml
+<web-app>
+  <servlet>
+    <servlet-name>LoginServlet</servlet-name>
+    <servlet-class>LoginServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>LoginServlet</servlet-name>
+    <url-pattern>/LoginServlet</url-pattern>
+  </servlet-mapping>
+</web-app>
+
