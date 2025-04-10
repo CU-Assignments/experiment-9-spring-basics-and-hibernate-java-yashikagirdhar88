@@ -1,50 +1,101 @@
 Aim:- To perform CRUD operations on a Student entity using Hibernate 
 with MySql
-Program:- 1.MySQL Setup
-CREATE DATABASE company;
-USE company;
+Program:- 1.Student.java (Hibernate Entity)
+import javax.persistence.*;
 
-CREATE TABLE employees (
-  id INT PRIMARY KEY,
-  name VARCHAR(50),
-  department VARCHAR(50)
-);
+@Entity
+@Table(name = "students")
+public class Student {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
 
-INSERT INTO employees VALUES (1, 'Ankit', 'IT'), (2, 'Yashika', 'HR');
-2. EmployeeServlet.java
-import java.io.*;
-import java.sql.*;
-import javax.servlet.*;
-import javax.servlet.http.*;
+    private String name;
+    private int age;
 
-public class EmployeeServlet extends HttpServlet {
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String empId = request.getParameter("empId");
-        response.setContentType("text/html");
-        PrintWriter out = response.getWriter();
+    // Getters and Setters
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
 
-        try {
-            Class.forName("com.mysql.jdbc.Driver");
-            Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/company", "root", "yourpassword");
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-            PreparedStatement ps = con.prepareStatement("SELECT * FROM employees WHERE id = ?");
-            ps.setInt(1, Integer.parseInt(empId));
-            ResultSet rs = ps.executeQuery();
+    public int getAge() { return age; }
+    public void setAge(int age) { this.age = age; }
+}
+2.hibernate.cfg.xml (in src/main/resources)
+<!DOCTYPE hibernate-configuration PUBLIC
+"-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+"http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+  <session-factory>
+    <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
+    <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/studentdb</property>
+    <property name="hibernate.connection.username">root</property>
+    <property name="hibernate.connection.password">yourpassword</property>
+    <property name="hibernate.dialect">org.hibernate.dialect.MySQL8Dialect</property>
+    <property name="show_sql">true</property>
+    <property name="hibernate.hbm2ddl.auto">update</property>
 
-            if (rs.next()) {
-                out.println("Employee Name: " + rs.getString("name"));
-                out.println("<br>Department: " + rs.getString("department"));
-            } else {
-                out.println("No employee found with ID: " + empId);
-            }
-            con.close();
-        } catch(Exception e) {
-            out.println(e);
+    <mapping class="Student"/>
+  </session-factory>
+</hibernate-configuration>
+
+3. StudentDAO.java
+import org.hibernate.*;
+import org.hibernate.cfg.Configuration;
+
+public class StudentDAO {
+    private static SessionFactory factory = new Configuration().configure().buildSessionFactory();
+
+    public void createStudent(String name, int age) {
+        Session session = factory.openSession();
+        Transaction tx = session.beginTransaction();
+        Student s = new Student();
+        s.setName(name);
+        s.setAge(age);
+        session.save(s);
+        tx.commit();
+        session.close();
+        System.out.println("Student inserted.");
+    }
+
+    public void readStudents() {
+        Session session = factory.openSession();
+        List<Student> list = session.createQuery("from Student", Student.class).list();
+        for(Student s : list) {
+            System.out.println(s.getId() + " " + s.getName() + " " + s.getAge());
         }
+        session.close();
+    }
+
+    public void updateStudent(int id, String name) {
+        Session session = factory.openSession();
+        Transaction tx = session.beginTransaction();
+        Student s = session.get(Student.class, id);
+        s.setName(name);
+        session.update(s);
+        tx.commit();
+        session.close();
+    }
+
+    public void deleteStudent(int id) {
+        Session session = factory.openSession();
+        Transaction tx = session.beginTransaction();
+        Student s = session.get(Student.class, id);
+        session.delete(s);
+        tx.commit();
+        session.close();
     }
 }
-3.  employee.html
-<form action="EmployeeServlet" method="post">
-  Enter Employee ID: <input type="text" name="empId">
-  <input type="submit" value="Search">
-</form>
+4. MainApp.java
+public class MainApp {
+    public static void main(String[] args) {
+        StudentDAO dao = new StudentDAO();
+
+        dao.createStudent("Ananya", 21);
+        dao.readStudents();
+        dao.updateStudent(1, "Yashika");
+        dao.deleteStudent(2);
+    }
+}
